@@ -1,103 +1,205 @@
-import Image from "next/image";
+"use client";
+import React, { useEffect, useState } from "react";
+import Sidebar from "@/components/Sidebar";
+import Topbar from "@/components/Topbar";
+import StatCard from "@/components/StatCard";
+import ChartBar from "@/components/ChartBar";
+import ChartDonut from "@/components/ChartDonut";
+import ChartMap from "@/components/ChartMap";
+import FilterPanel from "@/components/FilterPanel";
+import ChartBarRace from "@/components/ChartBarRace";
+import DataTable from "@/components/DataTable";
+import { Zap, Target, TrendingUp, BarChart3 } from "lucide-react";
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+export default function DashboardPage() {
+  const [filters, setFilters] = useState({});
+  const [options, setOptions] = useState({});
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Load filter options once (from entire dataset)
+  useEffect(() => {
+    async function fetchOptions() {
+      try {
+        const res = await fetch("/api/data");
+        if (!res.ok) throw new Error("Failed to fetch data");
+        const allData = await res.json();
+
+        const fields = [
+          "end_year",
+          "topic",
+          "sector",
+          "region",
+          "pestle",
+          "source",
+          "swot",
+          "country",
+          "city",
+        ];
+        const opts = {};
+
+        fields.forEach((field) => {
+          opts[field] = Array.from(
+            new Set(
+              allData
+                .map((d) => d[field])
+                .filter(
+                  (val) => val !== null && val !== undefined && val !== ""
+                )
+            )
+          ).sort();
+        });
+
+        setOptions(opts);
+      } catch (error) {
+        console.error("Error fetching options:", error);
+      }
+    }
+    fetchOptions();
+  }, []);
+
+  // Fetch filtered data from API
+  useEffect(() => {
+    async function fetchFilteredData() {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val) params.append(key, val);
+        });
+
+        const res = await fetch(`/api/data?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch filtered data");
+        const result = await res.json();
+        setData(result);
+      } catch (error) {
+        console.error("Error fetching filtered data:", error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchFilteredData();
+  }, [filters]);
+
+  const average = (data, field) => {
+    if (!data || data.length === 0) return "0.0";
+    const valid = data
+      .map((d) => +d[field])
+      .filter((val) => !isNaN(val) && val !== 0);
+    const avg = valid.length
+      ? valid.reduce((a, b) => a + b, 0) / valid.length
+      : 0;
+    return avg.toFixed(1);
+  };
+
+  if (loading && data.length === 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex min-h-screen ${darkMode ? "dark" : ""}`}>
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+
+      <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-50 to-blue-50">
+        <Topbar
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+        />
+
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            <FilterPanel
+              filters={filters}
+              setFilters={setFilters}
+              options={options}
+            />
+
+            {loading && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                  <span className="text-blue-700">Updating data...</span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+              <StatCard
+                title="Average Intensity"
+                value={average(data, "intensity")}
+                icon={Zap}
+                color="from-blue-500 to-blue-600"
+                trend={5.2}
+                change="vs last month"
+              />
+              <StatCard
+                title="Average Likelihood"
+                value={average(data, "likelihood")}
+                icon={Target}
+                color="from-purple-500 to-purple-600"
+                trend={-2.1}
+                change="vs last month"
+              />
+              <StatCard
+                title="Average Relevance"
+                value={average(data, "relevance")}
+                icon={TrendingUp}
+                color="from-green-500 to-green-600"
+                trend={8.3}
+                change="vs last month"
+              />
+              <StatCard
+                title="Total Records"
+                value={data.length.toLocaleString()}
+                icon={BarChart3}
+                color="from-orange-500 to-orange-600"
+                trend={12.5}
+                change="vs last month"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+              <ChartBar
+                data={data}
+                groupBy="country"
+                metric="intensity"
+                title="Intensity by Country"
+              />
+<ChartMap data={data} field="region" title="Distribution by Region" />
+
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+              <ChartBarRace
+                data={data}
+                groupBy="sector"
+                metric="likelihood"
+                title="Likelihood by Sector"
+              />
+              <ChartDonut
+                data={data}
+                field="topic"
+                title="Distribution by Topic"
+              />
+            </div>
+
+            <DataTable data={data} />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
