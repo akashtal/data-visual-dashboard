@@ -18,7 +18,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
 
   // Load filter options once (from entire dataset)
   useEffect(() => {
@@ -178,7 +177,7 @@ export default function DashboardPage() {
                 metric="intensity"
                 title="Intensity by Country"
               />
-<ChartMap data={data} field="region" title="Distribution by Region" />
+              <ChartMap data={data} field="region" title="Distribution by Region" />
 
             </div>
 
